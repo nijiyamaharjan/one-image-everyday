@@ -20,6 +20,7 @@ const ImageDisplay = ({ photos, onDelete }) => {
             for (let date = startDate; date.isBefore(endDate.add(1, 'day')); date = date.add(1, 'day')) {
                 generatedDates.push(date.format('YYYY-MM-DD'));
             }
+            generatedDates.pop()
             return generatedDates;
         };
 
