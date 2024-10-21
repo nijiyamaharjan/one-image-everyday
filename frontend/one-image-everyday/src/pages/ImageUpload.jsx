@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 const ImageUpload = ({ onImageUpload }) => {
     const [newPhoto, setNewPhoto] = useState({
@@ -8,6 +9,17 @@ const ImageUpload = ({ onImageUpload }) => {
     });
 
     const [photoExists, setPhotoExists] = useState(false)
+    const navigate = useNavigate()
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search); // Use window.location to get query params
+        const dateParam = params.get('date');
+
+        if (dateParam) {
+            setNewPhoto(prevState => ({ ...prevState, date: dateParam }));
+            checkIfPhotoExists(dateParam); // Check if photo exists for the preselected date
+        }
+    }, []);
 
     const handlePhoto = (e) => {
         const selectedFile = e.target.files[0];
@@ -47,6 +59,8 @@ const ImageUpload = ({ onImageUpload }) => {
 
             console.log(response.data); // Log the response data
             onImageUpload(uploadedPhoto);
+
+            navigate("/display")
         } catch (err) {
             console.error(err); // Use console.error for error logging
         }
@@ -63,12 +77,10 @@ const ImageUpload = ({ onImageUpload }) => {
             <input
                 type="date"
                 name="date"
+                value={newPhoto.date}
                 onChange={handleDate}
             />
-
-            {photoExists && <p className="text-red-500">A photo already exists for this date.</p>}
-
-            <input type="submit" disabled={photoExists}/>
+            <input type="submit"/>
         </form>
     );
 };

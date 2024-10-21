@@ -1,28 +1,35 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import dayjs from 'dayjs'
+import dayjs from 'dayjs';
+import { useNavigate } from 'react-router-dom';
+import { Button, Box, Typography } from '@mui/material';
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 
 const ImageDisplay = ({ photos, onDelete }) => {
     const [photoExistsMap, setPhotoExistsMap] = useState({})
     const [datesInRange, setDatesInRange] = useState([]);
+    const [currentMonth, setCurrentMonth] = useState(dayjs())
+    const navigate = useNavigate()
 
     useEffect(() => {
-        // Check for each photo's date if it exists
-        const startDate = dayjs().startOf('month'); // Start of the current month
-        const endDate = dayjs().endOf('month'); // End of the current month
-        const generatedDates = [];
+        const generateDatesForMonth = (month) => {
+            const startDate = month.startOf('month');
+            const endDate = month.endOf('month');
+            const generatedDates = [];
 
-        // Generate the array of dates for the current month
-        for (let date = startDate; date.isBefore(endDate.add(1, 'day')); date = date.add(1, 'day')) {
-            generatedDates.push(date.format('YYYY-MM-DD'));
-        }
+            for (let date = startDate; date.isBefore(endDate.add(1, 'day')); date = date.add(1, 'day')) {
+                generatedDates.push(date.format('YYYY-MM-DD'));
+            }
+            return generatedDates;
+        };
 
-        setDatesInRange(generatedDates); // Set the generated dates in state
+        const dates = generateDatesForMonth(currentMonth);
+        setDatesInRange(dates);
 
-        generatedDates.forEach(date => {
+        dates.forEach(date => {
             checkIfPhotoExists(date); // Check for existence for each date
         });
-    }, [photos]);
+    }, [currentMonth, photos]);
 
     const checkIfPhotoExists = async (selectedDate) => {
         if (photoExistsMap[selectedDate] !== undefined) return
@@ -45,9 +52,28 @@ const ImageDisplay = ({ photos, onDelete }) => {
         }
     }
 
+    const handleUpload = (date) => {
+        const formattedDate = date.split('T')[0];
+        navigate(`/upload?date=${formattedDate}`);
+    }
+    
+
+    const changeMonth = (direction) => {
+        if (direction === 'prev') {
+            setCurrentMonth(currentMonth.subtract(1, 'month')) // Move to the previous month
+        } else if (direction === 'next') {
+            setCurrentMonth(currentMonth.add(1, 'month')) // Move to the next month
+        }
+    };
+
     return (
         <div>
             <h2 className="text-lg font-semibold mb-4">Uploaded Photos for the Month</h2>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
+                <Button variant="outlined" onClick={() => changeMonth('prev')}>← Previous</Button>
+                <p>{currentMonth.format('MMMM YYYY')}</p>
+                <Button variant="outlined" onClick={() => changeMonth('next')}>Next →</Button>
+            </div>
             <div className="flex flex-row flex-wrap"> {/* Flexbox for wrapping images */}
                 {datesInRange.map((date) => {
                     const photoForDate = photos.find(photo => dayjs(photo.date).format('YYYY-MM-DD') === date); // Find photo for the current date
@@ -71,18 +97,33 @@ const ImageDisplay = ({ photos, onDelete }) => {
                                 <div className="w-full h-full bg-gray-500"></div> // Show a gray rectangle if no photo exists
                             )}
 
-                            {/* Delete button for the existing photo */}
                             {photoForDate && (
+                                <>
+                                {/* Delete button */}
                                 <button
                                     className="absolute bottom-2 right-2 bg-white text-black text-xs px-2 py-1 rounded"
                                     onClick={() => handleDelete(photoForDate._id)}
                                 >
                                     Delete
-                                </button>
+                                </button>                                
+                                </>
                             )}
+                            {/* Upload button */}
+                            <button
+                                    className="absolute top-2 right-2 bg-white text-black text-xs px-2 py-1 rounded"
+                                    onClick={() => handleUpload(date)}
+                                >
+                                    Upload
+                            </button>
+                            
                         </div>
                     );
                 })}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
+                <Button variant="outlined" onClick={() => changeMonth('prev')}>← Previous</Button>
+                <p>{currentMonth.format('MMMM YYYY')}</p>
+                <Button variant="outlined" onClick={() => changeMonth('next')}>Next →</Button>
             </div>
         </div>
     );
