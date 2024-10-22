@@ -67,20 +67,57 @@ const ImageDisplay = ({ photos, onDelete }) => {
         }
     };
 
+    const groupDatesByWeeks = (dates) => {
+        const weeks = [];
+        let currentWeek = [];
+        
+        dates.forEach((date) => {
+            const dayOfWeek = dayjs(date).day(); // 0 is Sunday, 6 is Saturday
+            
+            // If it's the first day being processed, add empty slots for previous days
+            if (currentWeek.length === 0 && dayOfWeek > 0) {
+                for (let i = 0; i < dayOfWeek; i++) {
+                    currentWeek.push(null);
+                }
+            }
+            
+            currentWeek.push(date);
+            
+            // If we've hit Saturday (6) or it's the last date, push the week
+            if (dayOfWeek === 6 || date === dates[dates.length - 1]) {
+                // Fill in any remaining days in the week
+                while (currentWeek.length < 7) {
+                    currentWeek.push(null);
+                }
+                weeks.push(currentWeek);
+                currentWeek = [];
+            }
+        });
+        
+        return weeks;
+    };
+
     return (
-        <div>
-            <h2 className="text-lg font-semibold mb-4">Uploaded Photos for the Month</h2>
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
-                <Button variant="outlined" onClick={() => changeMonth('prev')}>← Previous</Button>
-                <p>{currentMonth.format('MMMM YYYY')}</p>
-                <Button variant="outlined" onClick={() => changeMonth('next')}>Next →</Button>
+        <div className='flex flex-col items-center justify-center'>
+            <div className='flex text-2xl font-semibold items-center justify-between mx-4 my-3'>
+                <button
+                 onClick={() => changeMonth('prev')}
+                 className="text-gray-700 hover:text-gray-900 hover:bg-gray-100 p-2 rounded transition-colors duration-200">
+                    ←
+                </button>
+                <p className='mx-4'>{currentMonth.format('MMMM YYYY')}</p>
+                <button
+                 onClick={() => changeMonth('next')}
+                 className="text-gray-700 hover:text-gray-900 hover:bg-gray-100 p-2 rounded transition-colors duration-200">
+                 →</button>
             </div>
-            <div className="flex flex-row flex-wrap"> {/* Flexbox for wrapping images */}
+            <div className="flex flex-row flex-wrap justify-center"> {/* Flexbox for wrapping images */}
                 {datesInRange.map((date) => {
                     const photoForDate = photos.find(photo => dayjs(photo.date).format('YYYY-MM-DD') === date); // Find photo for the current date
                     const photoExists = photoExistsMap[date]; // Check existence for the current date
                     return (
-                        <div key={date} className="relative w-48 h-48 overflow-hidden flex justify-center items-center m-0">
+                        <div className="flex flex-wrap">
+                        <div key={date} className="relative w-48 h-48 overflow-hidden flex m-0">
                             {/* Overlay for the date */}
                             <div className="absolute top-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
                                 <p>{dayjs(date).format('ddd')}</p>
@@ -116,15 +153,22 @@ const ImageDisplay = ({ photos, onDelete }) => {
                                 >
                                     Upload
                             </button>
-                            
+                            </div>
                         </div>
                     );
                 })}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
-                <Button variant="outlined" onClick={() => changeMonth('prev')}>← Previous</Button>
-                <p>{currentMonth.format('MMMM YYYY')}</p>
-                <Button variant="outlined" onClick={() => changeMonth('next')}>Next →</Button>
+            <div className='flex text-2xl font-semibold items-center justify-between mx-4 my-3'>
+                <button
+                 onClick={() => changeMonth('prev')}
+                 className="text-gray-700 hover:text-gray-900 hover:bg-gray-100 p-2 rounded transition-colors duration-200">
+                    ←
+                </button>
+                <p className='mx-4'>{currentMonth.format('MMMM YYYY')}</p>
+                <button
+                 onClick={() => changeMonth('next')}
+                 className="text-gray-700 hover:text-gray-900 hover:bg-gray-100 p-2 rounded transition-colors duration-200">
+                 →</button>
             </div>
         </div>
     );

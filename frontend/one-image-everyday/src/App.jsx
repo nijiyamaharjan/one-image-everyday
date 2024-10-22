@@ -32,24 +32,46 @@ const App = () => {
 
     return (
         <BrowserRouter>
-            <div>
-                <h1>Photo Uploader</h1>
-                <nav>
-                    <Link to="/upload" className="mr-4">Upload</Link>
-                    <Link to="/display" className='mr-4'>Display</Link>
-                    <Link to="/slideshow" className='mr-4'>Generate Slideshow</Link>
-                    <Link to="/video" className='mr-4'>Generate Video</Link>
-                </nav>
+  <div className="min-h-screen bg-gray-100 flex flex-col">
+    <header className="bg-blue-950 text-white py-3 shadow-md">
+      <div className="container mx-auto flex flex-col items-center">
+        <h1 className="text-3xl font-bold mb-2">One Image Everyday</h1>
+        <nav className="flex space-x-4">
+          <Link to="/upload" className="hover:text-gray-300">Upload</Link>
+          <p>|</p>
+          <Link to="/display" className="hover:text-gray-300">Display</Link>
+          <p>|</p>
+          <Link to="/slideshow" className="hover:text-gray-300">Generate Slideshow</Link>
+          <p>|</p>
+          <Link to="/video" className="hover:text-gray-300">Generate Video</Link>
+        </nav>
+      </div>
+    </header>
 
-                <Routes>
-                    <Route path="/upload" element={<ImageUpload photos={photos} onImageUpload={handleNewImage} onDelete={handleDeletePhoto} />} />
-                    <Route path="/display" element={<ImageDisplay photos={photos} onDelete={handleDeletePhoto} />} />
-                    <Route path="/slideshow" element={<Slideshow photos={photos}/>} />
-                    <Route path="/video" element={<Video photos={photos}/>} />
-
-                </Routes>
-            </div>
-        </BrowserRouter>
+    <main className="flex-grow container mx-auto py-8 px-4">
+      <div className="bg-white p-6 rounded-lg shadow-lg">
+        <Routes>
+          <Route
+            path="/upload"
+            element={
+              <ImageUpload
+                photos={photos}
+                onImageUpload={handleNewImage}
+                onDelete={handleDeletePhoto}
+              />
+            }
+          />
+          <Route
+            path="/display"
+            element={<ImageDisplay photos={photos} onDelete={handleDeletePhoto} />}
+          />
+          <Route path="/slideshow" element={<Slideshow photos={photos} />} />
+          <Route path="/video" element={<Video photos={photos} />} />
+        </Routes>
+      </div>
+    </main>
+  </div>
+</BrowserRouter>
     );
 };
 

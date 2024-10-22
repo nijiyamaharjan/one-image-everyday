@@ -132,10 +132,10 @@ const SlideshowVideoCreator = ({ photos }) => {
   }
 
   return (
-    <div className="p-4">
+    <div className="p-4 flex flex-col justify-center items-center">
       <h1 className="text-2xl font-bold mb-4">Create Slideshow Video</h1>
 
-      <div className="space-y-4">
+      <div className="space-y-4 flex flex-col justify-center items-center">
         <div className="flex space-x-4">
           <input
             type="date"
@@ -158,7 +158,7 @@ const SlideshowVideoCreator = ({ photos }) => {
         </div>
 
         {filteredPhotos.length > 0 && (
-          <div className="space-y-2">
+          <div className="space-y-2 flex flex-col items-center justify-center">
             <button 
               onClick={createSlideshowVideo}
               disabled={isProcessing}
