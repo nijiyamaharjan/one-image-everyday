@@ -3,6 +3,7 @@ import axios from 'axios';
 import ImageUpload from './pages/ImageUpload';
 import ImageDisplay from './pages/ImageDisplay';
 import Slideshow from './pages/Slideshow'
+import Video from './pages/Video'
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 
 const App = () => {
@@ -37,12 +38,15 @@ const App = () => {
                     <Link to="/upload" className="mr-4">Upload</Link>
                     <Link to="/display" className='mr-4'>Display</Link>
                     <Link to="/slideshow" className='mr-4'>Generate Slideshow</Link>
+                    <Link to="/video" className='mr-4'>Generate Video</Link>
                 </nav>
 
                 <Routes>
                     <Route path="/upload" element={<ImageUpload photos={photos} onImageUpload={handleNewImage} onDelete={handleDeletePhoto} />} />
                     <Route path="/display" element={<ImageDisplay photos={photos} onDelete={handleDeletePhoto} />} />
                     <Route path="/slideshow" element={<Slideshow photos={photos}/>} />
+                    <Route path="/video" element={<Video photos={photos}/>} />
+
                 </Routes>
             </div>
         </BrowserRouter>

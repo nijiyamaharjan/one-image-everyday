@@ -22,7 +22,7 @@ const Slideshow = ({ photos }) => {
 
     return (
         <div>
-            <h1>Create Video</h1>
+            <h1 className='my-3'>Create Video</h1>
             {/* <Video photos={photos} /> */}
 
             {/* Date Range Picker */}
