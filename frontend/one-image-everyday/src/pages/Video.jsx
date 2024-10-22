@@ -56,9 +56,11 @@ const SlideshowVideoCreator = ({ photos }) => {
 
   const handleDateFilter = () => {
     try {
+      const adjustedEndDate = dayjs(endDate).add(1, 'day'); // Add one day to the end date
       const filtered = photos.filter(photo =>
-        dayjs(photo.date).isBetween(startDate, endDate, null, '[]')
+        dayjs(photo.date).isBetween(startDate, adjustedEndDate, null, '[]') // Adjusted date range
       );
+      console.log(filtered)
       setFilteredPhotos(filtered);
       setError('');
     } catch (err) {
@@ -97,7 +99,7 @@ const SlideshowVideoCreator = ({ photos }) => {
 
       // Create video with transition effects
       await ffmpeg.exec([
-        '-framerate', '0.5',  // 2 seconds per image
+        '-framerate', '1',  // 1 seconds per image
         '-i', 'image%d.png',
         '-c:v', 'libx264',
         '-pix_fmt', 'yuv420p',

@@ -4,18 +4,17 @@ import dayjs from 'dayjs';
 
 import { useNavigate } from 'react-router-dom';
 
-const ImageUpload = ({photos, onImageUpload, onDelete }) => {
+const ImageUpload = ({ photos, onImageUpload, onDelete }) => {
     const [newPhoto, setNewPhoto] = useState({
         photo: null, // Initialize as null instead of an empty string
         date: ''
     });
 
-    const [photoExists, setPhotoExists] = useState(false)
-    const [preview, setPreview] = useState('')
+    const [photoExists, setPhotoExists] = useState(false);
+    const [preview, setPreview] = useState('');
 
     const navigate = useNavigate();
     const photoForDate = photos.find(photo => dayjs(photo.date).format('YYYY-MM-DD') === newPhoto.date); // Find photo for the current date
-
 
     useEffect(() => {
         const params = new URLSearchParams(window.location.search); // Use window.location to get query params
@@ -32,17 +31,17 @@ const ImageUpload = ({photos, onImageUpload, onDelete }) => {
 
         return () => {
             if (preview) {
-                URL.revokeObjectURL(preview)
+                URL.revokeObjectURL(preview);
             }
-        }
+        };
     }, [preview]);
 
     const handlePhoto = (e) => {
-        const selectedFile = e.target.files[0]
+        const selectedFile = e.target.files[0];
 
         if (selectedFile) {
-            const previewUrl = URL.createObjectURL(selectedFile)
-            setPreview(previewUrl)
+            const previewUrl = URL.createObjectURL(selectedFile);
+            setPreview(previewUrl);
             setNewPhoto({ ...newPhoto, photo: selectedFile }); // Correctly set the new photo state
         }
     };
@@ -63,21 +62,52 @@ const ImageUpload = ({photos, onImageUpload, onDelete }) => {
         }
     };
 
+    const convertToPng = (file) => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+
+                    // Convert the canvas to a blob in PNG format
+                    canvas.toBlob((blob) => {
+                        resolve(new File([blob], `${newPhoto.date}.png`, { type: 'image/png' }));
+                    }, 'image/png');
+                };
+                img.src = event.target.result;
+            };
+
+            reader.onerror = (err) => reject(err);
+            reader.readAsDataURL(file);
+        });
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const formData = new FormData();
-        formData.append('photo', newPhoto.photo);
-        formData.append('date', newPhoto.date);
+        if (!newPhoto.photo) return;
 
         try {
+            const pngFile = await convertToPng(newPhoto.photo);
+            const formData = new FormData();
+            formData.append('photo', pngFile);
+            formData.append('date', newPhoto.date);
+
             // If a photo exists, the new one will overwrite it
             const response = await axios.post('http://localhost:4000/api/photos/add', formData);
             const uploadedPhoto = response.data;
+
             if (photoExists) {
-                handleDelete(photoForDate._id)
+                handleDelete(photoForDate._id);
             }
+
             onImageUpload(uploadedPhoto); // Call the callback with the uploaded photo data
-            console.log('Image uploaded', response.data)
+            console.log('Image uploaded', response.data);
             navigate("/display"); // Redirect to display page
         } catch (err) {
             console.error('Error uploading photo:', err);
@@ -86,49 +116,47 @@ const ImageUpload = ({photos, onImageUpload, onDelete }) => {
 
     const handleDelete = async (id) => {
         try {
-            const response = await axios.delete(`http://localhost:4000/api/photos/delete/${id}`)
-            console.log(response.data)
-            onDelete(id)
-        } catch(error) {
-            console.error('Error deleting the photo: ', error)
+            const response = await axios.delete(`http://localhost:4000/api/photos/delete/${id}`);
+            console.log(response.data);
+            onDelete(id);
+        } catch (error) {
+            console.error('Error deleting the photo: ', error);
         }
-    }
+    };
 
     return (
         <div className='w-96 h-720'>
-        <form onSubmit={handleSubmit} encType='multipart/form-data'>
-            <input
-                type="file"
-                accept=".png, .jpg, .jpeg"
-                name="photo"
-                onChange={handlePhoto}
-            />
-            <input
-                type="date"
-                name="date"
-                value={newPhoto.date}
-                onChange={handleDate}
-            />
-            
-            <input type="submit" value={photoExists ? "Overwrite Photo" : "Upload Photo"} />
+            <form onSubmit={handleSubmit} encType='multipart/form-data'>
+                <input
+                    type="file"
+                    accept=".png, .jpg, .jpeg"
+                    name="photo"
+                    onChange={handlePhoto}
+                />
+                <input
+                    type="date"
+                    name="date"
+                    value={newPhoto.date}
+                    onChange={handleDate}
+                />
 
-            {preview && (
-                <img
-                src={preview}
-                alt="Preview"
-                className="w-full h-full object-cover"
-            />
-            )}
-            {photoExists && (
-                <img
-                src={`http://localhost:4000/images/${photoForDate.photo}`}
-                alt={photoForDate.date}
-                className="w-full h-full object-cover"
-            />
-            )}
+                <input type="submit" value={photoExists ? "Overwrite Photo" : "Upload Photo"} />
 
-            
-        </form>
+                {preview && (
+                    <img
+                        src={preview}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                    />
+                )}
+                {photoExists && (
+                    <img
+                        src={`http://localhost:4000/images/${photoForDate.photo}`}
+                        alt={photoForDate.date}
+                        className="w-full h-full object-cover"
+                    />
+                )}
+            </form>
         </div>
     );
 };
