@@ -99,16 +99,18 @@ const SlideshowVideoCreator = ({ photos }) => {
 
       // Create video with transition effects
       await ffmpeg.exec([
-        '-framerate', '1',  // 1 seconds per image
+        '-framerate', '1',
         '-i', 'image%d.png',
         '-c:v', 'libx264',
         '-pix_fmt', 'yuv420p',
-        '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2,fade=t=in:st=0:d=1:alpha=1,fade=t=out:st=1:d=1:alpha=1[v]',
-        '-movflags', '+faststart',
+        '-vf', 'scale=1920:1080:force_original_aspect_ratio=1,pad=1920:1080:-1:-1:color=black',
+        '-frames:v', String(filteredPhotos.length),
+        '-f', 'mp4',
         '-preset', 'medium',
         '-crf', '23',
+        '-movflags', '+faststart',
         'output.mp4'
-      ]);
+    ]);
 
       const data = await ffmpeg.readFile('output.mp4');
       const url = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));

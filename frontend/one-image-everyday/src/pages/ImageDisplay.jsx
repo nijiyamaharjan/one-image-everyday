@@ -67,36 +67,6 @@ const ImageDisplay = ({ photos, onDelete }) => {
         }
     };
 
-    const groupDatesByWeeks = (dates) => {
-        const weeks = [];
-        let currentWeek = [];
-        
-        dates.forEach((date) => {
-            const dayOfWeek = dayjs(date).day(); // 0 is Sunday, 6 is Saturday
-            
-            // If it's the first day being processed, add empty slots for previous days
-            if (currentWeek.length === 0 && dayOfWeek > 0) {
-                for (let i = 0; i < dayOfWeek; i++) {
-                    currentWeek.push(null);
-                }
-            }
-            
-            currentWeek.push(date);
-            
-            // If we've hit Saturday (6) or it's the last date, push the week
-            if (dayOfWeek === 6 || date === dates[dates.length - 1]) {
-                // Fill in any remaining days in the week
-                while (currentWeek.length < 7) {
-                    currentWeek.push(null);
-                }
-                weeks.push(currentWeek);
-                currentWeek = [];
-            }
-        });
-        
-        return weeks;
-    };
-
     return (
         <div className='flex flex-col items-center justify-center'>
             <div className='flex text-2xl font-semibold items-center justify-between mx-4 my-3'>
@@ -111,17 +81,23 @@ const ImageDisplay = ({ photos, onDelete }) => {
                  className="text-gray-700 hover:text-gray-900 hover:bg-gray-100 p-2 rounded transition-colors duration-200">
                  →</button>
             </div>
-            <div className="flex flex-row flex-wrap justify-center"> {/* Flexbox for wrapping images */}
+
+            <div className="grid grid-cols-7 gap-0.5"> {/* Grid for wrapping images */}
+                {/* Empty slots before the first day of the month */}
+                {Array.from({ length: currentMonth.startOf('month').day() }).map((_, index) => (
+                    <div key={index} className="w-full h-48 bg-transparent"></div>
+                ))}
+
                 {datesInRange.map((date) => {
                     const photoForDate = photos.find(photo => dayjs(photo.date).format('YYYY-MM-DD') === date); // Find photo for the current date
                     const photoExists = photoExistsMap[date]; // Check existence for the current date
                     return (
-                        <div className="flex flex-wrap">
-                        <div key={date} className="relative w-48 h-48 overflow-hidden flex m-0">
+                        <div  key={date} className="flex flex-wrap">
+                        <div className="relative w-48 h-48 overflow-hidden flex m-0">
                             {/* Overlay for the date */}
                             <div className="absolute top-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
                                 <p>{dayjs(date).format('ddd')}</p>
-                                <p className="font-bold text-xl">{dayjs(date).format('MMM')}</p>
+                                {/* <p className="font-bold text-xl">{dayjs(date).format('MMM')}</p> */}
                                 <p className="font-bold text-2xl">{dayjs(date).format('DD')}</p>
                             </div>
 
@@ -156,7 +132,7 @@ const ImageDisplay = ({ photos, onDelete }) => {
                             </div>
                         </div>
                     );
-                })}
+                })}       
             </div>
             <div className='flex text-2xl font-semibold items-center justify-between mx-4 my-3'>
                 <button
@@ -175,3 +151,4 @@ const ImageDisplay = ({ photos, onDelete }) => {
 };
 
 export default ImageDisplay;
+
