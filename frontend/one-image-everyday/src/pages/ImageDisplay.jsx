@@ -4,7 +4,7 @@ import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../hooks/useAuthContext';
 
-const ImageDisplay = ({ photos, onDelete }) => {
+const ImageDisplay = ({ photos = [], onDelete, refreshPhotos }) => {
     const [photoExistsMap, setPhotoExistsMap] = useState({});
     const [datesInRange, setDatesInRange] = useState([]);
     const [currentMonth, setCurrentMonth] = useState(dayjs());
@@ -17,6 +17,11 @@ const ImageDisplay = ({ photos, onDelete }) => {
             return;
         }
 
+        // Fetch photos when component mounts
+        refreshPhotos();
+    }, [user, navigate]); // Only run on mount and when user changes
+
+    useEffect(() => {
         const generateDatesForMonth = (month) => {
             const startDate = month.startOf('month');
             const endDate = month.endOf('month');
@@ -30,44 +35,39 @@ const ImageDisplay = ({ photos, onDelete }) => {
 
         const dates = generateDatesForMonth(currentMonth);
         setDatesInRange(dates);
-        console.log('Generated dates:', dates);
 
-        // Set initial photoExistsMap based on photos prop
+        const photoArray = Array.isArray(photos) ? photos : [];
+        
         const newPhotoExistsMap = {};
         dates.forEach(date => {
-            const hasPhoto = photos.some(photo => 
+            const hasPhoto = photoArray.some(photo => 
                 dayjs(photo.date).format('YYYY-MM-DD') === date
             );
             newPhotoExistsMap[date] = hasPhoto;
         });
         setPhotoExistsMap(newPhotoExistsMap);
         
-    }, [currentMonth, photos, user, navigate]);
+    }, [currentMonth, photos]);
 
     const handleDelete = async (id) => {
         if (!user || !user.token) return;
 
         try {
-            const response = await axios.delete(`http://localhost:4000/api/photos/delete/${id}`, {
+            await axios.delete(`http://localhost:4000/api/photos/delete/${id}`, {
                 headers: {
                     Authorization: `Bearer ${user.token}`,
                 },
             });
-            console.log(response.data);
             onDelete(id);
+            await refreshPhotos(); // Refresh photos after deletion
             
-            const deletedPhoto = photos.find(photo => photo._id === id);
-            if (deletedPhoto) {
-                const dateKey = dayjs(deletedPhoto.date).format('YYYY-MM-DD');
-                setPhotoExistsMap(prev => ({ ...prev, [dateKey]: false }));
-            }
         } catch (error) {
             console.error('Error deleting the photo: ', error);
         }
     };
 
     const handleUpload = (date) => {
-        navigate(`/upload?date=${date}`);
+        navigate(`/upload?date=${date}&exists=${photoExistsMap[date]}`);
     };
 
     const changeMonth = (direction) => {
@@ -78,9 +78,8 @@ const ImageDisplay = ({ photos, onDelete }) => {
         }
     };
 
-    console.log('Current month:', currentMonth.format('YYYY-MM'));
-    console.log('Photos prop:', photos);
-    console.log('PhotoExistsMap:', photoExistsMap);
+    // Ensure photos is an array for the render phase
+    const photoArray = Array.isArray(photos) ? photos : [];
 
     return (
         <div className='flex flex-col items-center justify-center'>
@@ -106,14 +105,9 @@ const ImageDisplay = ({ photos, onDelete }) => {
                 ))}
 
                 {datesInRange.map((date) => {
-                    const photoForDate = photos.find(photo => {
-                        const photoDate = dayjs(photo.date).format('YYYY-MM-DD');
-                        const matches = photoDate === date;
-                        if (matches) {
-                            console.log('Found photo for date:', date, photo);
-                        }
-                        return matches;
-                    });
+                    const photoForDate = photoArray.find(photo => 
+                        dayjs(photo.date).format('YYYY-MM-DD') === date
+                    );
                     
                     return (
                         <div key={date} className='flex flex-wrap'>
@@ -128,8 +122,6 @@ const ImageDisplay = ({ photos, onDelete }) => {
                                         src={`http://localhost:4000/images/${photoForDate.photo}`}
                                         alt={photoForDate.date}
                                         className='w-full h-full object-cover'
-                                        onError={(e) => console.error('Image failed to load:', e)}
-                                        onLoad={() => console.log('Image loaded successfully')}
                                     />
                                 ) : (
                                     <div className='w-full h-full bg-gray-400'></div>

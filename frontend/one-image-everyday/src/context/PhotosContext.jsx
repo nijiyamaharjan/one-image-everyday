@@ -12,6 +12,12 @@ const photosReducer = (state, action) => {
       return {
         photos: []
       }
+    case 'ADD_PHOTO':
+      return { photos: [...state.photos, action.payload] };
+    case 'DELETE_PHOTO':
+        return {
+          workouts: state.workouts.filter((p) => p._id !== action.photos._id)
+        }
     default:
       return state
   }

@@ -71,63 +71,139 @@ const SlideshowVideoCreator = ({ photos }) => {
     }
   };
 
-  const createSlideshowVideo = async () => {
-    if (!ffmpeg || filteredPhotos.length === 0) return;
-
-    try {
-      setIsProcessing(true);
-      setError('');
-
-      // Process each photo
-      for (let i = 0; i < filteredPhotos.length; i++) {
-        const photo = filteredPhotos[i];
-        
-        try {
-          const response = await fetch(`http://localhost:4000/images/${photo.photo}`, {
-            mode: 'cors',
-            credentials: 'same-origin', 
-            headers: {
-              Authorization: `Bearer ${user.token}`,
+    const createSlideshowVideo = async () => {
+      if (!ffmpeg || filteredPhotos.length === 0) return;
+      try {
+          setIsProcessing(true);
+          setError('');
+          
+          // Create a canvas for text overlay
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          canvas.width = 1280;
+          canvas.height = 720;
+          
+          // Process each photo with canvas text overlay
+          for (let i = 0; i < filteredPhotos.length; i++) {
+              const photo = filteredPhotos[i];
+              
+              try {
+                  const response = await fetch(`http://localhost:4000/images/${photo.photo}`, {
+                      mode: 'cors',
+                      credentials: 'same-origin', 
+                      headers: {
+                          Authorization: `Bearer ${user.token}`,
+                      }
+                  });
+                  
+                  if (!response.ok) {
+                      throw new Error(`Failed to fetch image ${i + 1}`);
+                  }
+                  
+                  // Create an image element and load the photo
+                  const img = new Image();
+                  const blob = await response.blob();
+                  const imageUrl = URL.createObjectURL(blob);
+                  
+                  await new Promise((resolve, reject) => {
+                      img.onload = resolve;
+                      img.onerror = reject;
+                      img.src = imageUrl;
+                  });
+                  
+                  // Clear canvas
+                  ctx.clearRect(0, 0, canvas.width, canvas.height);
+                  
+                  // Calculate scaling and positioning to maintain aspect ratio
+                  const scale = Math.min(
+                      canvas.width / img.width,
+                      canvas.height / img.height
+                  );
+                  const x = (canvas.width - img.width * scale) / 2;
+                  const y = (canvas.height - img.height * scale) / 2;
+                  
+                  // Draw black background
+                  ctx.fillStyle = 'black';
+                  ctx.fillRect(0, 0, canvas.width, canvas.height);
+                  
+                  // Draw image
+                  ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+                  
+                  // Format date
+                  const date = new Date(photo.date);
+                  const dateText = date.toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                  });
+                  
+                  // Add text
+                  ctx.font = 'bold 36px Arial';
+                  ctx.textAlign = 'center';
+                  
+                  // Draw text shadow
+                  ctx.fillStyle = 'black';
+                  for (let offset = 0; offset < 3; offset++) {
+                      ctx.fillText(
+                          dateText,
+                          canvas.width / 2 + offset,
+                          canvas.height - 40 + offset
+                      );
+                  }
+                  
+                  // Draw main text
+                  ctx.fillStyle = 'white';
+                  ctx.fillText(dateText, canvas.width / 2, canvas.height - 40);
+                  
+                  // Convert canvas to blob and write to FFmpeg
+                  const processedBlob = await new Promise(resolve => {
+                      canvas.toBlob(resolve, 'image/png');
+                  });
+                  await ffmpeg.writeFile(`processed${i}.png`, await fetchFile(processedBlob));
+                  
+                  // Cleanup
+                  URL.revokeObjectURL(imageUrl);
+              } catch (fetchError) {
+                  throw new Error(`Failed to process image ${i + 1}: ${fetchError.message}`);
+              }
           }
-          });
-          
-          if (!response.ok) {
-            throw new Error(`Failed to fetch image ${i + 1}`);
+
+          // Create filter complex for concatenation
+          let filterComplex = '';
+          let inputs = '';
+          let overlayChain = '';
+
+          // Build the filter complex string
+          for (let i = 0; i < filteredPhotos.length; i++) {
+              inputs += `-i processed${i}.png `;
+              filterComplex += `[${i}:v]setpts=PTS-STARTPTS+${i}*2/TB[v${i}];`;
+              overlayChain += `[v${i}]`;
           }
-          
-          const blob = await response.blob();
-          await ffmpeg.writeFile(`image${i}.png`, await fetchFile(blob));
-          
-        } catch (fetchError) {
-          throw new Error(`Failed to process image ${i + 1}: ${fetchError.message}`);
-        }
+
+          // Add concatenation
+          filterComplex += `${overlayChain}concat=n=${filteredPhotos.length}:v=1:a=0[outv]`;
+
+          // Create the final video
+          await ffmpeg.exec([
+              ...inputs.trim().split(' '),
+              '-filter_complex', filterComplex,
+              '-map', '[outv]',
+              '-c:v', 'libx264',
+              '-preset', 'ultrafast',
+              '-pix_fmt', 'yuv420p',
+              'final_output.mp4'
+          ]);
+
+          // Read and create URL for the final video
+          const data = await ffmpeg.readFile('final_output.mp4');
+          const url = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
+          setVideoUrl(url);
+      } catch (err) {
+          console.error('Error creating video:', err);
+          setError(`Error creating video: ${err.message}`);
+      } finally {
+          setIsProcessing(false);
       }
-
-      // Create video with transition effects
-      await ffmpeg.exec([
-        '-framerate', '1',
-        '-i', 'image%d.png',
-        '-c:v', 'libx264',
-        '-pix_fmt', 'yuv420p',
-        '-vf', 'scale=1920:1080:force_original_aspect_ratio=1,pad=1920:1080:-1:-1:color=black',
-        '-frames:v', String(filteredPhotos.length),
-        '-f', 'mp4',
-        '-preset', 'medium',
-        '-crf', '23',
-        '-movflags', '+faststart',
-        'output.mp4'
-    ]);
-
-      const data = await ffmpeg.readFile('output.mp4');
-      const url = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
-      setVideoUrl(url);
-
-    } catch (err) {
-      console.error('Error creating video:', err);
-      setError(`Error creating video: ${err.message}`);
-    } finally {
-      setIsProcessing(false);
-    }
   };
 
   if (isLoading) {

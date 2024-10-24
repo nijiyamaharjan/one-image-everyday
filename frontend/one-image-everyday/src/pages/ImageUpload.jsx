@@ -4,10 +4,10 @@ import dayjs from 'dayjs';
 import { useAuthContext } from '../hooks/useAuthContext';
 import { useNavigate } from 'react-router-dom';
 
-const ImageUpload = ({ photos, onImageUpload, onDelete }) => {
+const ImageUpload = ({ photos = [], onImageUpload, onDelete }) => {
     const { user } = useAuthContext()
     const [newPhoto, setNewPhoto] = useState({
-        photo: null, // Initialize as null instead of an empty string
+        photo: null,
         date: ''
     });
 
@@ -15,18 +15,22 @@ const ImageUpload = ({ photos, onImageUpload, onDelete }) => {
     const [preview, setPreview] = useState('');
 
     const navigate = useNavigate();
-    const photoForDate = photos.find(photo => dayjs(photo.date).format('YYYY-MM-DD') === newPhoto.date); // Find photo for the current date
+    
+    // Add null check before using find
+    const photoForDate = Array.isArray(photos) 
+        ? photos.find(photo => dayjs(photo.date).format('YYYY-MM-DD') === newPhoto.date)
+        : undefined;
 
     useEffect(() => {
-        const params = new URLSearchParams(window.location.search); // Use window.location to get query params
+        const params = new URLSearchParams(window.location.search);
         const dateParam = params.get('date');
-        const photoExistsParam = params.get('exists') === 'true'; // Parse 'exists' param as boolean
+        const photoExistsParam = params.get('exists') === 'true';
 
         if (dateParam) {
             setNewPhoto(prevState => ({ ...prevState, date: dateParam }));
-            setPhotoExists(photoExistsParam); // Set state from URL param if photo exists
+            setPhotoExists(photoExistsParam);
             if (!photoExistsParam) {
-                checkIfPhotoExists(dateParam); // Check if photo exists for the preselected date only if not already set
+                checkIfPhotoExists(dateParam);
             }
         }
 
@@ -43,14 +47,14 @@ const ImageUpload = ({ photos, onImageUpload, onDelete }) => {
         if (selectedFile) {
             const previewUrl = URL.createObjectURL(selectedFile);
             setPreview(previewUrl);
-            setNewPhoto({ ...newPhoto, photo: selectedFile }); // Correctly set the new photo state
+            setNewPhoto({ ...newPhoto, photo: selectedFile });
         }
     };
 
     const handleDate = async (e) => {
         const selectedDate = e.target.value;
         setNewPhoto({ ...newPhoto, date: selectedDate });
-        checkIfPhotoExists(selectedDate); // Check if a photo exists for the newly selected date
+        checkIfPhotoExists(selectedDate);
     };
 
     const checkIfPhotoExists = async (selectedDate) => {
@@ -60,8 +64,8 @@ const ImageUpload = ({ photos, onImageUpload, onDelete }) => {
                     'Authorization': `Bearer ${user.token}`
                 }
             });
-            setPhotoExists(response.data.exists); // Update the state based on response
-            onImageUpload(response.data); // Call the callback
+            setPhotoExists(response.data.exists);
+            onImageUpload(response.data);
         } catch (error) {
             console.error('Error checking for photo:', error);
         }
@@ -80,7 +84,6 @@ const ImageUpload = ({ photos, onImageUpload, onDelete }) => {
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0);
 
-                    // Convert the canvas to a blob in PNG format
                     canvas.toBlob((blob) => {
                         resolve(new File([blob], `${newPhoto.date}.png`, { type: 'image/png' }));
                     }, 'image/png');
@@ -107,7 +110,6 @@ const ImageUpload = ({ photos, onImageUpload, onDelete }) => {
             formData.append('photo', pngFile);
             formData.append('date', newPhoto.date);
     
-            // Correct axios.post by moving headers outside the formData
             const response = await axios.post('http://localhost:4000/api/photos/add', formData, {
                 headers: {
                     Authorization: `Bearer ${user.token}`,
@@ -117,13 +119,12 @@ const ImageUpload = ({ photos, onImageUpload, onDelete }) => {
     
             const uploadedPhoto = response.data;
     
-            if (photoExists) {
+            if (photoExists && photoForDate) {
                 handleDelete(photoForDate._id);
             }
     
-            onImageUpload(uploadedPhoto); // Call the callback with the uploaded photo data
-            console.log('Image uploaded', response.data);
-            navigate("/display"); // Redirect to display page
+            onImageUpload(uploadedPhoto);
+            navigate("/display");
         } catch (err) {
             console.error('Error uploading photo:', err);
         }
@@ -139,7 +140,6 @@ const ImageUpload = ({ photos, onImageUpload, onDelete }) => {
                     Authorization: `Bearer ${user.token}`,
                 },
             });
-            console.log(response.data);
             onDelete(id);
         } catch (error) {
             console.error('Error deleting the photo: ', error);
@@ -149,23 +149,22 @@ const ImageUpload = ({ photos, onImageUpload, onDelete }) => {
     return (
         <div className='p-4 flex flex-col justify-center items-center'>
             <form
-            onSubmit={handleSubmit}
-            encType='multipart/form-data'
-            className='flex flex-col items-center justify-center'
+                onSubmit={handleSubmit}
+                encType='multipart/form-data'
+                className='flex flex-col items-center justify-center'
             >
-
-                <div class="flex items-center justify-center w-full">
-                <label for="dropzone-file" class="flex flex-col items-center justify-center p-4 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
-                            <div class="flex flex-col items-center justify-center pt-5 pb-6">
-                            <svg class="w-8 h-8 mb-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
-                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
+                <div className="flex items-center justify-center w-full">
+                    <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center p-4 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                            <svg className="w-8 h-8 mb-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
+                                <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
                             </svg>
-                            <p class="mb-2 text-sm"><span class="font-semibold">Click to upload</span> or drag and drop</p>
-                            <p class="text-xs">PNG or JPG</p>
+                            <p className="mb-2 text-sm"><span className="font-semibold">Click to upload</span> or drag and drop</p>
+                            <p className="text-xs">PNG or JPG</p>
                         </div>
-                        <input id="dropzone-file" type="file" accept=".png, .jpg, .jpeg" onChange={handlePhoto} class="hidden" />
+                        <input id="dropzone-file" type="file" accept=".png, .jpg, .jpeg" onChange={handlePhoto} className="hidden" />
                     </label>
-                </div> 
+                </div>
 
                 <input
                     type="date"
@@ -176,9 +175,10 @@ const ImageUpload = ({ photos, onImageUpload, onDelete }) => {
                 />
 
                 <input
-                 type="submit"
-                 value={photoExists ? "Overwrite Photo" : "Upload Photo"}
-                 className="bg-blue-500 my-2 text-white px-4 py-2 rounded hover:bg-blue-600" />
+                    type="submit"
+                    value={photoExists ? "Overwrite Photo" : "Upload Photo"}
+                    className="bg-blue-500 my-2 text-white px-4 py-2 rounded hover:bg-blue-600"
+                />
 
                 {preview && (
                     <img
@@ -187,7 +187,7 @@ const ImageUpload = ({ photos, onImageUpload, onDelete }) => {
                         className="w-64 h-auto object-cover"
                     />
                 )}
-                {photoExists && (
+                {photoExists && photoForDate && (
                     <img
                         src={`http://localhost:4000/images/${photoForDate.photo}`}
                         alt={photoForDate.date}
