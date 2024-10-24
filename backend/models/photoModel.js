@@ -8,6 +8,10 @@ const photoSchema = new Schema({
     },
     date: {
         type: Date
+    },
+    user_id: {
+        type: String,
+        required: true
     }
 }, { timestamps: true })
 

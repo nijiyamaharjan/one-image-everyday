@@ -4,23 +4,41 @@ import ImageUpload from './pages/ImageUpload';
 import ImageDisplay from './pages/ImageDisplay';
 import Slideshow from './pages/Slideshow'
 import Video from './pages/Video'
+import Login from './Login';
+import { useLogout } from './hooks/useLogout';
+import { useAuthContext } from './hooks/useAuthContext';
+import { usePhotosContext } from './hooks/usePhotosContext'
+
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import Signup from './Signup';
 
 const App = () => {
-    const [photos, setPhotos] = useState([]);
+    const { photos } = usePhotosContext()
+    const { logout } = useLogout()
+    const { user } = useAuthContext()
+    const { dispatch } = usePhotosContext()
+
+    const handleClick = () => {
+      logout()
+    }
 
     useEffect(() => {
         const fetchPhotos = async () => {
             try {
-                const response = await axios.get('http://localhost:4000/api/photos/viewall');
-                setPhotos(response.data);
+                const response = await axios.get('http://localhost:4000/api/photos/viewall', {
+                  headers: {
+                    Authorization: `Bearer ${user.token}`,
+                  },
+                });
+                dispatch({ type: 'SET_PHOTOS', payload: response.data })
             } catch (error) {
                 console.error('Error fetching photos:', error);
             }
         };
-
-        fetchPhotos();
-    }, []);
+        if (user) {
+          fetchPhotos();
+        } 
+    }, [user]);
 
     const handleNewImage = (newPhoto) => {
         setPhotos(prevPhotos => [...prevPhotos, newPhoto]);
@@ -32,46 +50,60 @@ const App = () => {
 
     return (
         <BrowserRouter>
-  <div className="min-h-screen bg-gray-100 flex flex-col">
-    <header className="bg-blue-950 text-white py-3 shadow-md">
-      <div className="container mx-auto flex flex-col items-center">
-        <h1 className="text-3xl font-bold mb-2">One Image Everyday</h1>
-        <nav className="flex space-x-4">
-          <Link to="/upload" className="hover:text-gray-300">Upload</Link>
-          <p>|</p>
-          <Link to="/display" className="hover:text-gray-300">Display</Link>
-          <p>|</p>
-          <Link to="/slideshow" className="hover:text-gray-300">Generate Slideshow</Link>
-          <p>|</p>
-          <Link to="/video" className="hover:text-gray-300">Generate Video</Link>
-        </nav>
-      </div>
-    </header>
+          <div className="min-h-screen bg-gray-100 flex flex-col">
+            <header className="bg-gray-500 text-white py-3 shadow-md">
+              <div className="container mx-auto flex flex-col items-center">
+                <h1 className="text-3xl font-bold mb-2">One Image Everyday</h1>
+                <nav className="flex space-x-4">
+                  {!user && (
+                    <>
+                      <Link to="/login" className="hover:text-gray-300">Login</Link>
+                      <p>|</p>
+                      <Link to="/signup" className="hover:text-gray-300">Signup</Link>
+                    </>
+                  )}
+                  {user && (
+                    <>
+                      <Link to="/upload" className="hover:text-gray-300">Upload</Link>
+                      <p>|</p>
+                      <Link to="/display" className="hover:text-gray-300">Display</Link>
+                      <p>|</p>
+                      <Link to="/video" className="hover:text-gray-300">Generate Video</Link>
+                      <p>|</p>
+                      <button onClick={handleClick} className="hover:text-gray-300">Log out</button>
+                      <p>|</p>
+                      <p className>{user.email} </p>
+                    </>
+                  )}
+                </nav>
+              </div>
+            </header>
 
-    <main className="flex-grow container mx-auto py-8 px-4">
-      <div className="bg-white p-6 rounded-lg shadow-lg">
-        <Routes>
-          <Route
-            path="/upload"
-            element={
-              <ImageUpload
-                photos={photos}
-                onImageUpload={handleNewImage}
-                onDelete={handleDeletePhoto}
-              />
-            }
-          />
-          <Route
-            path="/display"
-            element={<ImageDisplay photos={photos} onDelete={handleDeletePhoto} />}
-          />
-          <Route path="/slideshow" element={<Slideshow photos={photos} />} />
-          <Route path="/video" element={<Video photos={photos} />} />
-        </Routes>
-      </div>
-    </main>
-  </div>
-</BrowserRouter>
+            <main className="flex-grow container mx-auto py-8 px-4">
+              <div className="bg-white p-6 rounded-lg shadow-lg">
+                <Routes>
+                  <Route
+                      path="/upload"
+                      element={
+                        <ImageUpload
+                          photos={photos}
+                          onImageUpload={handleNewImage}
+                          onDelete={handleDeletePhoto}
+                        />
+                      }
+                    />
+                  <Route
+                    path="/display"
+                    element={<ImageDisplay photos={photos} onDelete={handleDeletePhoto} />}
+                  />
+                  <Route path="/video" element={<Video photos={photos} />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/signup" element={<Signup />} />
+                </Routes>
+              </div>
+            </main>
+          </div>
+        </BrowserRouter>
     );
 };
 

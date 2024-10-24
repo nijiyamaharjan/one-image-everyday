@@ -6,6 +6,7 @@ const cors = require('cors');
 const path = require('path');
 
 const photoRoutes = require('./routes/photos');
+const userRoutes = require('./routes/user');
 
 const app = express();
 
@@ -43,6 +44,7 @@ app.use('/ffmpeg', express.static(path.join(__dirname, 'node_modules/@ffmpeg/cor
 
 // Routes
 app.use('/api/photos', photoRoutes);
+app.use('/api/user', userRoutes )
 
 // Explicit routes for FFmpeg files
 app.get('/ffmpeg/ffmpeg-core.js', (req, res) => {
@@ -66,3 +68,4 @@ mongoose.connect('mongodb://localhost:27017/oneImageEveryday')
     .catch((error) => {
         console.error('Error connecting to MongoDB:', error.message);
     });
+

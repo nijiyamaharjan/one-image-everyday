@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import dayjs from 'dayjs';
-
+import { useAuthContext } from '../hooks/useAuthContext';
 import { useNavigate } from 'react-router-dom';
 
 const ImageUpload = ({ photos, onImageUpload, onDelete }) => {
+    const { user } = useAuthContext()
     const [newPhoto, setNewPhoto] = useState({
         photo: null, // Initialize as null instead of an empty string
         date: ''
@@ -54,7 +55,11 @@ const ImageUpload = ({ photos, onImageUpload, onDelete }) => {
 
     const checkIfPhotoExists = async (selectedDate) => {
         try {
-            const response = await axios.get(`http://localhost:4000/api/photos/exists?date=${selectedDate}`);
+            const response = await axios.get(`http://localhost:4000/api/photos/exists?date=${selectedDate}`, {
+                headers: {
+                    'Authorization': `Bearer ${user.token}`
+                }
+            });
             setPhotoExists(response.data.exists); // Update the state based on response
             onImageUpload(response.data); // Call the callback
         } catch (error) {
@@ -91,21 +96,31 @@ const ImageUpload = ({ photos, onImageUpload, onDelete }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!newPhoto.photo) return;
-
+    
+        if (!user) {
+            return;
+        }
+    
         try {
             const pngFile = await convertToPng(newPhoto.photo);
             const formData = new FormData();
             formData.append('photo', pngFile);
             formData.append('date', newPhoto.date);
-
-            // If a photo exists, the new one will overwrite it
-            const response = await axios.post('http://localhost:4000/api/photos/add', formData);
+    
+            // Correct axios.post by moving headers outside the formData
+            const response = await axios.post('http://localhost:4000/api/photos/add', formData, {
+                headers: {
+                    Authorization: `Bearer ${user.token}`,
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
+    
             const uploadedPhoto = response.data;
-
+    
             if (photoExists) {
                 handleDelete(photoForDate._id);
             }
-
+    
             onImageUpload(uploadedPhoto); // Call the callback with the uploaded photo data
             console.log('Image uploaded', response.data);
             navigate("/display"); // Redirect to display page
@@ -116,7 +131,14 @@ const ImageUpload = ({ photos, onImageUpload, onDelete }) => {
 
     const handleDelete = async (id) => {
         try {
-            const response = await axios.delete(`http://localhost:4000/api/photos/delete/${id}`);
+            if (!user) {
+                return
+            }
+            const response = await axios.delete(`http://localhost:4000/api/photos/delete/${id}`, {
+                headers: {
+                    Authorization: `Bearer ${user.token}`,
+                },
+            });
             console.log(response.data);
             onDelete(id);
         } catch (error) {

@@ -3,6 +3,7 @@ import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile } from '@ffmpeg/util';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
+import { useAuthContext } from '../hooks/useAuthContext';
 
 dayjs.extend(isBetween);
 
@@ -15,6 +16,8 @@ const SlideshowVideoCreator = ({ photos }) => {
   const [error, setError] = useState('');
   const [ffmpeg, setFfmpeg] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const { user } = useAuthContext()
 
   useEffect(() => {
     const loadFFmpeg = async () => {
@@ -82,7 +85,10 @@ const SlideshowVideoCreator = ({ photos }) => {
         try {
           const response = await fetch(`http://localhost:4000/images/${photo.photo}`, {
             mode: 'cors',
-            credentials: 'same-origin'
+            credentials: 'same-origin', 
+            headers: {
+              Authorization: `Bearer ${user.token}`,
+          }
           });
           
           if (!response.ok) {

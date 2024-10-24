@@ -4,6 +4,9 @@ const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const fs = require('fs');
 const Photo = require('../models/photoModel');
+const requireAuth = require('../middleware/requireAuth')
+
+router.use(requireAuth)
 
 // Ensure the images directory exists
 const dir = 'images';
@@ -38,8 +41,9 @@ const upload = multer({ storage, fileFilter });
 router.route('/add').post(upload.single('photo'), (req, res) => {
     const photo = req.file.filename;
     const date = req.body.date || new Date().toISOString();
+    const user_id = req.user._id
 
-    const newPhotoData = { photo, date};
+    const newPhotoData = { photo, date, user_id};
     const newPhoto = new Photo(newPhotoData);
 
     newPhoto.save()
@@ -49,8 +53,10 @@ router.route('/add').post(upload.single('photo'), (req, res) => {
 
 // Retrieve all photos
 router.route('/viewall').get(async (req, res) => {
+    const user_id = req.user._id
     try {
-        const photos = await Photo.find();
+        const photos = await Photo.find({ user_id });
+        console.log('user_id', user_id)
         res.json(photos);
     } catch (err) {
         console.error(err);
@@ -87,8 +93,9 @@ router.route('/delete/:id').delete((req, res) => {
   
 router.route('/exists').get(async (req, res) => {
     const { date } = req.query; // Get the date from query parameters
+    const user_id = req.user_id
     try {
-        const photo = await Photo.findOne({ date }); // Check for a photo with the specified date
+        const photo = await Photo.findOne({ date, user_id }); // Check for a photo with the specified date
         if (photo) {
             return res.json({ exists: true, photo });
         }
